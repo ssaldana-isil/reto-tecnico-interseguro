@@ -1,0 +1,9 @@
+*.pdf
+*.md
+openapi.yaml
+ejemplo.json
+Dockerfile
+.dockerignore
+.git
+.gitignore
+node_modules

@@ -1,0 +1,9 @@
+extends:
+  - recommended
+
+rules:
+  # Aún no hay URL de Cloud Run: localhost es el único servidor verificable hoy.
+  # Al desplegar, agregar la URL pública en `servers` y reactivar esta regla.
+  no-server-example.com: off
+  # La licencia es propietaria (uso exclusivo del reto): no existe una URL pública que referenciar.
+  info-license-strict: off

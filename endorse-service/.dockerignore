@@ -1,0 +1,15 @@
+node_modules
+dist
+data
+coverage
+tests
+docs
+*.drawio
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md

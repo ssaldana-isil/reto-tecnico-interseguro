@@ -1,0 +1,269 @@
+openapi: 3.0.3
+info:
+  title: endorse-service
+  version: 1.0.0
+  license:
+    name: Propietario - uso exclusivo del reto técnico Interseguro
+  description: >
+    Servicio traductor de endosos (Iniciativa Evolution, Endosos Sencillos). Recibe un JSON
+    plano y lo transforma al JSON estructurado del core según la plantilla activa de mayor
+    versión configurada en BD para el par (producto, tipoEndoso).
+servers:
+  - url: http://localhost:8080
+    description: Local
+paths:
+  /v1/auth/token:
+    post:
+      summary: Emite un JWT HS256 con las credenciales del cliente
+      operationId: issueToken
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Cuerpo JSON inválido (code BAD_REQUEST)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Credenciales inválidas (code UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: credenciales inválidas
+                code: UNAUTHORIZED
+  /v1/endorse/translate:
+    post:
+      summary: Traduce un endoso plano al JSON del core
+      operationId: translateEndorsement
+      tags: [endorse]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndorseRequest'
+      responses:
+        '200':
+          description: JSON estructurado listo para el core
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndorseResponse'
+        '400':
+          description: >
+            Cuerpo JSON inválido (code BAD_REQUEST) o no cumple el esquema (code VALIDATION,
+            details.fields lista todos los problemas).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: la solicitud no cumple el esquema
+                code: VALIDATION
+                details:
+                  fields: ['"policyNumber" is required', '"producto" is required', '"tipoEndoso" is required']
+        '401':
+          description: Falta el header Authorization, o el token es inválido o expiró (code UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'se requiere Authorization: Bearer <token>'
+                code: UNAUTHORIZED
+        '404':
+          description: No hay plantilla activa para el par consultado (code TEMPLATE_NOT_FOUND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: no existe plantilla activa para producto "Rumbo" y tipoEndoso "CambioDireccion"
+                code: TEMPLATE_NOT_FOUND
+                details:
+                  producto: Rumbo
+                  tipoEndoso: CambioDireccion
+        '422':
+          description: >
+            Campos requeridos por la plantilla sin valor ni default (code MISSING_FIELDS);
+            details.missingFields trae la lista completa de etiquetas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'faltan campos requeridos por la plantilla: NombreUsuario, FechaSolicitud'
+                code: MISSING_FIELDS
+                details:
+                  missingFields: [NombreUsuario, FechaSolicitud]
+        '500':
+          description: Error interno (code INTERNAL)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/health:
+    get:
+      summary: Healthcheck
+      operationId: health
+      tags: [ops]
+      security: []
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TokenRequest:
+      type: object
+      required: [clientId, clientSecret]
+      properties:
+        clientId:
+          type: string
+          example: frontend
+        clientSecret:
+          type: string
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: JWT HS256 (sub = clientId, iss = endorse-service)
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          description: Vigencia en segundos
+          example: 3600
+    EndorseRequest:
+      type: object
+      description: >
+        JSON plano. Solo policyNumber, producto y tipoEndoso son obligatorios; se aceptan claves
+        adicionales porque una plantilla puede leer cualquier campo_entrada.
+      required: [policyNumber, producto, tipoEndoso]
+      additionalProperties: true
+      properties:
+        policyNumber: { type: string, example: '08200000049' }
+        producto: { type: string, description: 'producto.codigo en BD', example: Rumbo }
+        tipoEndoso: { type: string, description: 'tipo_endoso.codigo en BD', example: CambioFrecuencia }
+        idEnvio: { type: number, example: 5984 }
+        frecuencia: { type: string, example: Semestral }
+        plan: { type: string, example: PlanRumbo }
+        moneda: { type: string, example: Nuevo Sol }
+        usuario: { type: string, example: interface.servicios }
+        fechaSolicitud: { type: string, example: '2025-08-27' }
+        fechaCliente: { type: string, example: '2025-08-27' }
+        fechaEfectiva: { type: string, example: '2025-09-01' }
+    Description:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+          nullable: true
+          description: null si el campo de origen no vino en el JSON plano
+    EndorseResponse:
+      type: object
+      required: [policyNumber, idEnvio, financialPlansEntity, currency, productEntity, eventEntity, eventAppliedEntities, riskUnitEntities, participationEntities]
+      properties:
+        policyNumber: { type: string }
+        idEnvio: { type: number, nullable: true }
+        financialPlansEntity: { $ref: '#/components/schemas/Description' }
+        currency: { $ref: '#/components/schemas/Description' }
+        productEntity: { $ref: '#/components/schemas/Description' }
+        eventEntity:
+          type: object
+          required: [description, dynamicData]
+          properties:
+            description: { type: string, description: plantilla.event_description }
+            dynamicData:
+              type: array
+              description: Ordenado por plantilla_campo.orden
+              items:
+                type: object
+                required: [etiqueta, value]
+                properties:
+                  etiqueta: { type: string }
+                  value: { type: string, nullable: true, description: Siempre string (o null) }
+        eventAppliedEntities:
+          type: array
+          description: Ordenado por plantilla_evento.order_event
+          items:
+            type: object
+            required: [description, orderEvent]
+            properties:
+              description: { type: string }
+              orderEvent: { type: integer }
+        riskUnitEntities:
+          type: array
+          items:
+            type: object
+            required: [insuranceObjectEntities, plansEntity, riskUnitNumber]
+            properties:
+              insuranceObjectEntities:
+                type: array
+                items:
+                  type: object
+                  required: [insuranceObjectNumber, coverageEntities, participationEntities]
+                  properties:
+                    insuranceObjectNumber: { type: string }
+                    coverageEntities: { type: array, items: {}, maxItems: 0 }
+                    participationEntities: { type: array, items: {}, maxItems: 0 }
+              plansEntity:
+                type: object
+                required: [description]
+                properties:
+                  description:
+                    description: >
+                      Valor del campo indicado en plantilla_risk_unit.campo_plan_entrada, copiado
+                      tal cual del JSON plano; null si no vino.
+                    anyOf:
+                      - { type: string, nullable: true }
+                      - { type: number }
+                      - { type: boolean }
+              riskUnitNumber: { type: string }
+        participationEntities: { type: array, items: {}, maxItems: 0 }
+    Error:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum: [BAD_REQUEST, VALIDATION, UNAUTHORIZED, NOT_FOUND, TEMPLATE_NOT_FOUND, MISSING_FIELDS, METHOD_NOT_ALLOWED, PAYLOAD_TOO_LARGE, UNSUPPORTED_MEDIA_TYPE, INTERNAL, ERROR]
+        details:
+          type: object
+          additionalProperties: true

@@ -1,0 +1,249 @@
+openapi: 3.0.3
+info:
+  title: routes-service
+  version: 1.0.0
+  license:
+    name: Propietario - uso exclusivo del reto técnico Interseguro
+  description: >
+    Servicio de rutas óptimas para la asignación de grúas (Iniciativa Evolution,
+    Atención de Siniestros). Calcula con Dijkstra la ruta más corta entre la base
+    de grúas más cercana y el distrito del siniestro. En empate de distancia gana
+    la base que aparece primero en `depots`.
+servers:
+  - url: http://localhost:8080
+    description: Local
+paths:
+  /v1/auth/token:
+    post:
+      summary: Emite un JWT con las credenciales del cliente
+      operationId: issueToken
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Credenciales inválidas (code UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: credenciales inválidas
+                code: UNAUTHORIZED
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/Internal'
+  /v1/routes/optimal:
+    post:
+      summary: Calcula la ruta óptima desde la base más cercana al accidente
+      operationId: optimalRoute
+      tags: [routes]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteRequest'
+      responses:
+        '200':
+          description: Ruta óptima encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '400':
+          description: >
+            Cuerpo inválido (code BAD_REQUEST) o error de validación (code VALIDATION):
+            accidentLocation o graph vacíos, sin depots, distrito del accidente
+            inexistente, base inexistente o distancia negativa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                badRequest:
+                  value:
+                    error: 'cuerpo inválido: se espera accidentLocation, depots y graph'
+                    code: BAD_REQUEST
+                unknownDepot:
+                  value:
+                    error: 'la base de grúas no existe en el grafo: "Narnia"'
+                    code: VALIDATION
+        '401':
+          description: Falta el header Authorization o el token es inválido o expiró (code UNAUTHORIZED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: token expirado
+                code: UNAUTHORIZED
+        '422':
+          description: El accidente no es alcanzable desde ninguna base (code UNREACHABLE)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: el distrito del accidente no es alcanzable desde ninguna base
+                code: UNREACHABLE
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/Internal'
+  /v1/health:
+    get:
+      summary: Healthcheck
+      operationId: health
+      tags: [ops]
+      security: []
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    PayloadTooLarge:
+      description: El cuerpo supera el máximo de 1 MB (code PAYLOAD_TOO_LARGE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: el cuerpo supera el máximo de 1 MB
+            code: PAYLOAD_TOO_LARGE
+    BadRequest:
+      description: Cuerpo JSON inválido (code BAD_REQUEST)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: cuerpo inválido
+            code: BAD_REQUEST
+    Internal:
+      description: Error interno (code INTERNAL)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: error interno
+            code: INTERNAL
+  schemas:
+    TokenRequest:
+      type: object
+      required: [clientId, clientSecret]
+      properties:
+        clientId:
+          type: string
+          example: frontend
+        clientSecret:
+          type: string
+          example: frontend-secret
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: JWT HS256
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          description: Vigencia en segundos
+          example: 3600
+    RouteRequest:
+      type: object
+      required: [accidentLocation, depots, graph]
+      properties:
+        accidentLocation:
+          type: string
+          description: Distrito del siniestro; debe existir en el grafo
+          example: San Isidro
+        depots:
+          type: array
+          minItems: 1
+          description: Bases de grúas; todas deben existir en el grafo. El orden define el desempate.
+          items:
+            type: string
+          example: [Miraflores, Ate]
+        graph:
+          $ref: '#/components/schemas/Graph'
+    Graph:
+      type: object
+      description: >
+        Lista de adyacencia dirigida: cada distrito mapea a sus vecinos con la
+        distancia como peso (no negativa). Un nodo puede aparecer solo como vecino.
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: number
+          minimum: 0
+      example:
+        Miraflores: { San Isidro: 7, Barranco: 3 }
+        San Isidro: { Miraflores: 7, Lince: 4 }
+        Barranco: { Miraflores: 3, Surco: 5 }
+        Lince: { San Isidro: 4, Surco: 6 }
+        Surco: { Barranco: 5, Lince: 6, Ate: 10 }
+        Ate: { Surco: 10 }
+    Route:
+      type: object
+      required: [fromDepot, to, path, distance]
+      properties:
+        fromDepot:
+          type: string
+          example: Miraflores
+        to:
+          type: string
+          example: San Isidro
+        path:
+          type: array
+          description: Distritos desde la base hasta el accidente, ambos incluidos
+          items:
+            type: string
+          example: [Miraflores, San Isidro]
+        distance:
+          type: number
+          example: 7
+    Error:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          description: Mensaje legible
+        code:
+          type: string
+          enum: [BAD_REQUEST, VALIDATION, UNAUTHORIZED, PAYLOAD_TOO_LARGE, UNREACHABLE, INTERNAL]

@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+
+# Bases SQLite locales (endorse-service: desarrollo y E2E); la imagen Docker genera la suya en el build
+data/
+*.sqlite
+
+# Cobertura de tests
+coverage/
+
+# Artefactos de Playwright (los navegadores viven en %LOCALAPPDATA%\ms-playwright, fuera del repo)
+test-results/
+playwright-report/
+
+# Enunciado del reto: material del proceso, no se versiona (el comodín cubre la "é" en NFD o NFC)
+/Reto t*cnico - LT.pdf
+
+# Configuración local de Claude Code
+.claude/settings.local.json
+
+# Variables de entorno locales (se versiona solo .env.example)
+.env
+.env.*
+!.env.example

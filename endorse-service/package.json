@@ -1,0 +1,37 @@
+{
+  "name": "endorse-service",
+  "version": "1.0.0",
+  "description": "Servicio traductor de endosos (Ejercicio 1 - reto Interseguro): JSON plano -> JSON estructurado del core según plantillas dinámicas en BD.",
+  "private": true,
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "migration:run": "ts-node src/database/migrate.ts",
+    "seed": "ts-node src/database/seed.ts",
+    "test": "jest",
+    "lint:openapi": "redocly lint openapi.yaml"
+  },
+  "dependencies": {
+    "@hapi/hapi": "^21.4.10",
+    "better-sqlite3": "^12.11.1",
+    "joi": "^18.2.9",
+    "jsonwebtoken": "^9.0.3",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^1.1.1"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.54.2",
+    "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.2",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.13",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
