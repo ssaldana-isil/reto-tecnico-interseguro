@@ -3,3 +3,7 @@ openapi.yaml:
   # El healthcheck no recibe entrada ni exige auth: no tiene respuestas 4XX reales que documentar.
   operation-4xx-response:
     - '#/paths/~1v1~1health/get/responses'
+  # localhost es el server de desarrollo local, declarado a propósito como segundo server.
+  # La regla sigue activa para cualquier otro server (producción incluida).
+  no-server-example.com:
+    - '#/servers/1/url'

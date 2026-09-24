@@ -9,8 +9,10 @@ info:
     plano y lo transforma al JSON estructurado del core según la plantilla activa de mayor
     versión configurada en BD para el par (producto, tipoEndoso).
 servers:
+  - url: https://endorse-service.onrender.com
+    description: Producción (Render)
   - url: http://localhost:8080
-    description: Local
+    description: Desarrollo local
 paths:
   /v1/auth/token:
     post:

@@ -38,7 +38,8 @@ const pdfOutput = {
   participationEntities: [],
 };
 
-const API = /localhost:\d+\/v1\//;
+// Local (localhost:<puerto>) o producción (Render): basta con el prefijo versionado.
+const API = /^https?:\/\/[^/]+\/v1\//;
 
 /** Registra cada llamada real a las APIs (método, URL, status y cuerpo) para el reporte. */
 function recordApiCalls(page) {
@@ -63,7 +64,7 @@ test.describe('Traductor de Endosos (endorse-service real)', () => {
     const pre = page.getByTestId('endorse-json');
     await expect(pre).toBeVisible();
     expect(await pre.textContent()).toBe(JSON.stringify(pdfOutput, null, 2));
-    expect(calls.map((c) => `${c.url.replace(/^http:\/\/localhost:\d+/, '')} ${c.status}`)).toEqual([
+    expect(calls.map((c) => `${c.url.replace(/^https?:\/\/[^/]+/, '')} ${c.status}`)).toEqual([
       '/v1/auth/token 200',
       '/v1/endorse/translate 200',
     ]);

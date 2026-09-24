@@ -1,4 +1,4 @@
-# evolution-frontend — Frontend del reto (Parte 2 de los ejercicios 1 y 2)
+# evolution-frontend - Frontend del reto (Parte 2 de los ejercicios 1 y 2)
 
 Un solo frontend en **Vue 3 + Vite** para los dos servicios, como permite el enunciado:
 
@@ -60,8 +60,8 @@ npm run build           # bundle estático en dist/
 |---|---|---|
 | `VITE_ENDORSE_API_URL` | `http://localhost:3001` | URL base de endorse-service |
 | `VITE_ROUTES_API_URL` | `http://localhost:8080` | URL base de routes-service |
-| `VITE_ENDORSE_CLIENT_ID` / `VITE_ENDORSE_CLIENT_SECRET` | — | Deben coincidir con `CLIENT_ID` / `CLIENT_SECRET` de endorse-service |
-| `VITE_ROUTES_CLIENT_ID` / `VITE_ROUTES_CLIENT_SECRET` | — | Deben coincidir con `CLIENT_ID` / `CLIENT_SECRET` de routes-service |
+| `VITE_ENDORSE_CLIENT_ID` / `VITE_ENDORSE_CLIENT_SECRET` | - | Deben coincidir con `CLIENT_ID` / `CLIENT_SECRET` de endorse-service |
+| `VITE_ROUTES_CLIENT_ID` / `VITE_ROUTES_CLIENT_SECRET` | - | Deben coincidir con `CLIENT_ID` / `CLIENT_SECRET` de routes-service |
 
 Vite lee las variables al compilar: tras cambiar `.env` hay que reiniciar `npm run dev` o volver a hacer el build.
 

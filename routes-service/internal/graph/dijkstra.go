@@ -33,8 +33,7 @@ var (
 // virtualSource es el nodo origen artificial conectado con peso 0 a todas las bases.
 const virtualSource = "\x00virtual-source"
 
-// item es un elemento de la cola de prioridad.
-// rank desempata distancias iguales: índice de la base de origen en el request.
+// item de la cola de prioridad. rank desempata distancias iguales: índice de la base de origen en el request.
 type item struct {
 	node string
 	dist float64
@@ -60,8 +59,7 @@ func (pq *priorityQueue) Pop() interface{} {
 	return it
 }
 
-// Dijkstra calcula distancias mínimas y predecesores desde un origen.
-// Devuelve mapas de distancia y predecesor para reconstruir caminos.
+// Dijkstra calcula distancias mínimas y predecesores (para reconstruir caminos) desde un origen.
 func Dijkstra(g Graph, source string) (map[string]float64, map[string]string, error) {
 	return dijkstra(g, source, nil)
 }

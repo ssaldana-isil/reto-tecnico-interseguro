@@ -2,8 +2,7 @@ extends:
   - recommended
 
 rules:
-  # Aún no hay URL de Cloud Run: localhost es el único servidor verificable hoy.
-  # Al desplegar, agregar la URL pública en `servers` y reactivar esta regla.
-  no-server-example.com: off
+  # Los servers deben ser URLs reales; localhost (desarrollo local) se exceptúa en .redocly.lint-ignore.yaml.
+  no-server-example.com: error
   # La licencia es propietaria (uso exclusivo del reto): no existe una URL pública que referenciar.
   info-license-strict: off

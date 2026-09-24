@@ -33,7 +33,7 @@ func sign(unsigned string, secret []byte) string {
 	return b64(mac.Sum(nil))
 }
 
-// Issue emite un token HS256 para el cliente indicado con TTL dado.
+// Issue emite un JWT HS256 con sub=subject y expiración ahora+ttl.
 func Issue(secret []byte, subject string, ttl time.Duration) (string, error) {
 	header := b64([]byte(`{"alg":"HS256","typ":"JWT"}`))
 	now := time.Now()

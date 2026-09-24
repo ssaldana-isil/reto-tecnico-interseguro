@@ -20,7 +20,7 @@ func loadConfig(getenv func(string) string) (api.Config, string, error) {
 		return api.Config{}, "", fmt.Errorf("faltan variables de entorno obligatorias: %s", strings.Join(missing, ", "))
 	}
 
-	port := getenv("PORT") // Cloud Run inyecta PORT
+	port := getenv("PORT") // Render inyecta PORT
 	if port == "" {
 		port = "8080"
 	}

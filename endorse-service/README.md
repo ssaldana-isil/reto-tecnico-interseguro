@@ -1,4 +1,4 @@
-# endorse-service — Servicio traductor de endosos (Ejercicio 1)
+# endorse-service - Servicio traductor de endosos (Ejercicio 1)
 
 API en **Node 22 + TypeScript + Hapi** que recibe el JSON plano de un endoso y lo transforma
 al **JSON estructurado y ordenado** que consume el core, según **plantillas dinámicas en BD**
@@ -46,7 +46,7 @@ Fuente editable: [Interseguro_Ej1_ER_Plantillas.drawio](Interseguro_Ej1_ER_Plant
 | `plantilla` | Plantilla por producto + tipo, versionada y activable; `event_description` → `eventEntity.description` | `UNIQUE(producto_id, tipo_endoso_id, version)` |
 | `plantilla_campo` | Define `dynamicData`: orden, etiqueta, origen (`INPUT`/`DEFAULT`), campo de entrada, default y si es requerido | `UNIQUE(plantilla_id, orden)`, `UNIQUE(plantilla_id, etiqueta)` |
 | `plantilla_evento` | Define `eventAppliedEntities` y su orden | `UNIQUE(plantilla_id, order_event)` |
-| `plantilla_risk_unit` | Estructura de `riskUnitEntities`; `campo_plan_entrada` → `plansEntity.description` | — |
+| `plantilla_risk_unit` | Estructura de `riskUnitEntities`; `campo_plan_entrada` → `plansEntity.description` | - |
 
 Un test (`tests/schema.test.ts`) verifica que la migración crea exactamente estas tablas y que
 los modelos TypeORM no difieren de ella.
@@ -73,9 +73,9 @@ que se traduce sin código nuevo. Para cambiar una plantilla sin perder la anter
 
 | Método | Ruta                    | Auth   | Descripción |
 |--------|-------------------------|--------|-------------|
-| POST   | /v1/auth/token          | —      | Emite JWT con clientId/clientSecret (mismo contrato que routes-service) |
+| POST   | /v1/auth/token          | -      | Emite JWT con clientId/clientSecret (mismo contrato que routes-service) |
 | POST   | /v1/endorse/translate   | Bearer | Traduce el JSON plano al JSON del core |
-| GET    | /v1/health              | —      | Healthcheck |
+| GET    | /v1/health              | -      | Healthcheck |
 
 Contrato completo en [openapi.yaml](openapi.yaml). Los errores tienen la forma `{error, code, details?}`:
 `400 BAD_REQUEST` / `400 VALIDATION`, `401 UNAUTHORIZED`, `404 TEMPLATE_NOT_FOUND`, `422 MISSING_FIELDS`, `500 INTERNAL`.
@@ -106,13 +106,13 @@ curl -s localhost:8080/v1/endorse/translate -H "Authorization: Bearer $TOKEN" \
 
 | Variable | Obligatoria | Default | Uso |
 |---|---|---|---|
-| `JWT_SECRET` | sí | — | Firma HS256 |
-| `CLIENT_ID` / `CLIENT_SECRET` | sí | — | Credenciales para `/v1/auth/token` |
-| `PORT` | no | `8080` | Puerto HTTP (Cloud Run lo inyecta) |
+| `JWT_SECRET` | sí | - | Firma HS256 |
+| `CLIENT_ID` / `CLIENT_SECRET` | sí | - | Credenciales para `/v1/auth/token` |
+| `PORT` | no | `8080` | Puerto HTTP (Render y Cloud Run lo inyectan) |
 | `CORS_ORIGIN` | no | `*` | Orígenes permitidos, separados por coma |
 | `DB_TYPE` | no | `sqlite` | `sqlite` o `postgres` |
 | `DB_PATH` | no | `data/endorse.sqlite` | Archivo SQLite |
-| `DB_URL` | con postgres | — | `postgres://usuario:clave@host:5432/endorse` |
+| `DB_URL` | con postgres | - | `postgres://usuario:clave@host:5432/endorse` |
 
 ### Cambiar a Postgres
 
@@ -122,7 +122,12 @@ curl -s localhost:8080/v1/endorse/translate -H "Authorization: Bearer $TOKEN" \
 
 La migración usa la API de `Table` de TypeORM (no SQL crudo), por lo que es la misma para ambos motores.
 
-## Docker y despliegue (GCP Cloud Run — capa gratuita)
+## Docker y despliegue
+
+En producción corre en **Render** (plan Free, runtime Docker con este `Dockerfile`): https://endorse-service.onrender.com.
+La configuración está en la sección [Despliegue del README raíz](../README.md#despliegue). Alternativa
+equivalente en GCP Cloud Run (capa gratuita):
+
 
 ```bash
 docker build -t endorse-service .

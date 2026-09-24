@@ -1,4 +1,4 @@
-# routes-service — Servicio de Rutas Óptimas (Ejercicio 2)
+# routes-service - Servicio de Rutas Óptimas (Ejercicio 2)
 
 Servicio en **Golang (stdlib, sin dependencias)** que calcula la ruta más corta
 entre la base de grúas más cercana y el distrito del siniestro, usando **Dijkstra**
@@ -33,9 +33,9 @@ distrito del accidente gana siempre (distancia 0, `path: [base]`).
 ## Endpoints (v1)
 | Método | Ruta                | Auth   | Descripción |
 |--------|---------------------|--------|-------------|
-| POST   | /v1/auth/token      | —      | Emite JWT con clientId/clientSecret |
+| POST   | /v1/auth/token      | -      | Emite JWT con clientId/clientSecret |
 | POST   | /v1/routes/optimal  | Bearer | Calcula la ruta óptima |
-| GET    | /v1/health          | —      | Healthcheck |
+| GET    | /v1/health          | -      | Healthcheck |
 
 Contrato completo (esquemas, ejemplos y códigos de error) en [openapi.yaml](openapi.yaml).
 
@@ -56,21 +56,26 @@ TOKEN=$(curl -s localhost:8080/v1/auth/token -d '{"clientId":"frontend","clientS
 curl -s localhost:8080/v1/routes/optimal -H "Authorization: Bearer $TOKEN" -d @ejemplo.json
 ```
 
-## Docker y despliegue (GCP Cloud Run — capa gratuita)
+## Docker y despliegue
+
+En producción corre en **Render** (plan Free, runtime Docker con este `Dockerfile`): https://routes-service-68hr.onrender.com.
+La configuración está en la sección [Despliegue del README raíz](../README.md#despliegue). Alternativa
+equivalente en GCP Cloud Run (capa gratuita):
+
 ```bash
 docker build -t routes-service .
 gcloud run deploy routes-service --source . --region us-central1 \
   --allow-unauthenticated \
   --set-env-vars JWT_SECRET=<secreto>,CLIENT_ID=<id>,CLIENT_SECRET=<secreto-cliente>
 ```
-Cloud Run inyecta `PORT` automáticamente; la imagen es distroless (mínima superficie de ataque).
+Render y Cloud Run inyectan `PORT` automáticamente; la imagen es distroless (mínima superficie de ataque).
 
 ## Variables de entorno
 | Variable | Obligatoria | Default | Uso |
 |---|---|---|---|
-| `JWT_SECRET` | sí | — | Firma HS256 |
-| `CLIENT_ID` / `CLIENT_SECRET` | sí | — | Credenciales para `/v1/auth/token` (se comparan en tiempo constante) |
-| `PORT` | no | `8080` | Puerto HTTP (Cloud Run lo inyecta) |
+| `JWT_SECRET` | sí | - | Firma HS256 |
+| `CLIENT_ID` / `CLIENT_SECRET` | sí | - | Credenciales para `/v1/auth/token` (se comparan en tiempo constante) |
+| `PORT` | no | `8080` | Puerto HTTP (Render y Cloud Run lo inyectan) |
 | `CORS_ORIGIN` | no | `*` | Orígenes permitidos, separados por coma |
 
 ## Límites del servidor

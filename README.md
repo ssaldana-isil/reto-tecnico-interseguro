@@ -1,43 +1,47 @@
-# Reto técnico Interseguro — Technical Lead
+# Reto técnico Interseguro - Technical Lead
 
 Solución de los tres ejercicios del enunciado, organizada como monorepo.
 Cada proyecto es autocontenido (código, pruebas, Dockerfile, contrato OpenAPI y README propio);
-este documento sirve de índice, guía de ejecución local y matriz de cumplimiento.
+este documento sirve de índice, guía de ejecución local y de despliegue, y matriz de cumplimiento.
 
-Enunciado provisto por Talsory/Interseguro — no se versiona por tratarse de material del proceso; disponible a solicitud.
+**En producción:** [frontend](https://reto-tecnico-interseguro.vercel.app) (Vercel) ·
+[endorse-service](https://endorse-service.onrender.com/v1/health) y
+[routes-service](https://routes-service-68hr.onrender.com/v1/health) (Render). Ver [Despliegue](#despliegue).
+
+Enunciado provisto por Talsory/Interseguro - no se versiona por tratarse de material del proceso; disponible a solicitud.
 
 ## Contenido
 
 | Carpeta | Ejercicio | Tecnología | Descripción |
 |---|---|---|---|
-| [endorse-service/](endorse-service/) | Ejercicio 1 — Parte 1 | Node 22, TypeScript, Hapi, TypeORM | Traductor de endosos: JSON plano → JSON del core según plantillas dinámicas en BD |
-| [routes-service/](routes-service/) | Ejercicio 2 — Parte 1 | Go 1.23 (biblioteca estándar) | Rutas óptimas: Dijkstra multi-base para asignar la grúa más cercana |
-| [evolution-frontend/](evolution-frontend/) | Ejercicios 1 y 2 — Parte 2 | Vue 3, Vite | Un solo frontend con dos pestañas, como permite el enunciado |
+| [endorse-service/](endorse-service/) | Ejercicio 1 - Parte 1 | Node 22, TypeScript, Hapi, TypeORM | Traductor de endosos: JSON plano → JSON del core según plantillas dinámicas en BD |
+| [routes-service/](routes-service/) | Ejercicio 2 - Parte 1 | Go 1.23 (biblioteca estándar) | Rutas óptimas: Dijkstra multi-base para asignar la grúa más cercana |
+| [evolution-frontend/](evolution-frontend/) | Ejercicios 1 y 2 - Parte 2 | Vue 3, Vite | Un solo frontend con dos pestañas, como permite el enunciado |
 | [ej3-arquitectura/](ej3-arquitectura/) | Ejercicio 3 | draw.io | Arquitectura AS IS / TO BE de préstamos de renta particular |
 
-## Ejercicio 1 — Servicio traductor de endosos
+## Ejercicio 1 - Servicio traductor de endosos
 
 API versionada (`POST /v1/endorse/translate`) que consulta en BD la plantilla activa por producto y tipo de
 endoso, y construye el JSON del core respetando el orden de `dynamicData`, los eventos y los valores por
 defecto. Un producto o tipo de endoso nuevo se incorpora solo con `INSERT`s. Detalle, modelo ER y reglas de
 traducción en el [README de endorse-service](endorse-service/README.md).
 
-## Ejercicio 2 — Servicio de rutas óptimas
+## Ejercicio 2 - Servicio de rutas óptimas
 
 API versionada (`POST /v1/routes/optimal`) que calcula, con una única ejecución de Dijkstra desde un nodo
 origen virtual, la ruta más corta entre la base de grúas más cercana y el distrito del siniestro. El grafo
 llega en cada petición, por lo que puede cambiar sin modificar la lógica. Detalle en el
 [README de routes-service](routes-service/README.md).
 
-## Ejercicio 3 — Arquitectura de préstamos de renta particular
+## Ejercicio 3 - Arquitectura de préstamos de renta particular
 
 Fuente editable: [INTERSEGURO_reto.drawio](ej3-arquitectura/INTERSEGURO_reto.drawio) (dos páginas: AS IS y TO BE).
 
-### AS IS — Problema actual
+### AS IS - Problema actual
 
 ![AS IS](ej3-arquitectura/as-is.jpg)
 
-### TO BE — Arquitectura propuesta
+### TO BE - Arquitectura propuesta
 
 ![TO BE](ej3-arquitectura/to-be.jpg)
 
@@ -135,11 +139,70 @@ npm run e2e
 Por defecto, routes-service se levanta en el puerto **8081** durante esta prueba, para no chocar con otro
 proceso en el 8080; se cambia con `E2E_ROUTES_PORT=8080 npm run e2e`. Requiere Go en el `PATH`.
 
+La misma suite corre contra producción (Vercel + Render) sin levantar procesos locales, con timeouts de 90 s
+por el arranque en frío:
+
+```bash
+curl -s https://endorse-service.onrender.com/v1/health      # calentamiento
+curl -s https://routes-service-68hr.onrender.com/v1/health
+cd evolution-frontend && npm run e2e:prod
+```
+
+## Despliegue
+
+| Componente | URL | Plataforma |
+|---|---|---|
+| evolution-frontend | https://reto-tecnico-interseguro.vercel.app | Vercel |
+| endorse-service | https://endorse-service.onrender.com | Render |
+| routes-service | https://routes-service-68hr.onrender.com | Render |
+
+### Backends en Render
+
+Cada servicio es un *Web Service* independiente en Render, con la misma configuración:
+
+| Parámetro | endorse-service | routes-service |
+|---|---|---|
+| Plan | Free | Free |
+| Runtime | Docker (su propio `Dockerfile`) | Docker (su propio `Dockerfile`) |
+| Root Directory | `endorse-service` | `routes-service` |
+| Health check path | `/v1/health` | `/v1/health` |
+| Variables (panel de Render) | `JWT_SECRET`, `CLIENT_ID`, `CLIENT_SECRET`, `CORS_ORIGIN` | `JWT_SECRET`, `CLIENT_ID`, `CLIENT_SECRET`, `CORS_ORIGIN` |
+| Auto-deploy | On commit (rama `main`) | On commit (rama `main`) |
+
+- `CORS_ORIGIN` es `https://reto-tecnico-interseguro.vercel.app` en ambos: solo el frontend publicado puede
+  llamarlos desde el navegador.
+- `PORT` no se define: Render lo inyecta y los dos servicios lo leen.
+- endorse-service ejecuta migraciones y seed durante el build de la imagen, así que la base SQLite de demo
+  viaja dentro de ella; cada despliegue parte de los mismos datos de ejemplo.
+
+### Frontend en Vercel
+
+- Root Directory: `evolution-frontend`, framework preset **Vite** (build `npm run build`, salida `dist`).
+- Variables de entorno del proyecto: `VITE_ENDORSE_API_URL`, `VITE_ROUTES_API_URL`,
+  `VITE_ENDORSE_CLIENT_ID`, `VITE_ENDORSE_CLIENT_SECRET`, `VITE_ROUTES_CLIENT_ID`,
+  `VITE_ROUTES_CLIENT_SECRET`. Las dos URLs apuntan a los servicios de Render y cada par de credenciales
+  coincide con `CLIENT_ID`/`CLIENT_SECRET` del servicio correspondiente.
+- Vite embebe las `VITE_*` en el bundle durante el build: cambiar una exige redesplegar el frontend
+  (trade-off documentado en el [README de evolution-frontend](evolution-frontend/README.md#trade-off-de-seguridad)).
+
+### Gestión de secretos
+
+- Los secretos se generan por entorno (local, E2E, producción) y **nunca se versionan**: los de producción
+  viven solo en los paneles de Render y Vercel.
+- Los `.env.example` solo documentan las claves; sus valores son marcadores.
+- Los servicios no arrancan si falta `JWT_SECRET`, `CLIENT_ID` o `CLIENT_SECRET` (fail-fast, sin defaults).
+
+### Arranque en frío
+
+El plan Free de Render suspende los servicios tras un periodo de inactividad: **la primera petición tras
+inactividad puede tardar ~30-60 s** mientras el contenedor se reactiva; las siguientes responden con
+normalidad. Para una demo conviene abrir antes cada `/v1/health`.
+
 ## Matriz de cumplimiento
 
 Estado: ✅ cumplido y verificado · 🟡 parcial · ❌ pendiente.
 
-### Ejercicio 1 — Servicio traductor de endosos
+### Ejercicio 1 - Servicio traductor de endosos
 
 | Requisito del enunciado | Estado | Evidencia |
 |---|---|---|
@@ -151,7 +214,7 @@ Estado: ✅ cumplido y verificado · 🟡 parcial · ❌ pendiente.
 | Construir el JSON respetando orden y defaults | ✅ | Test "produce exactamente la salida del PDF" en [endorse.mapper.test.ts](endorse-service/tests/endorse.mapper.test.ts) |
 | Devolver el JSON listo para el core | ✅ | Test de API y E2E: respuesta idéntica al ejemplo del enunciado |
 | Estructura en capas (solo las necesarias) | ✅ | `src/{routes,controllers,services,entities,mappers,repositories,models}`; omisión de Integration y Publisher justificada en su README |
-| Parte 2 — Frontend | ✅ | [EndorseTab.vue](evolution-frontend/src/components/EndorseTab.vue); 7 escenarios E2E |
+| Parte 2 - Frontend | ✅ | [EndorseTab.vue](evolution-frontend/src/components/EndorseTab.vue); 7 escenarios E2E |
 | Criterio: modelado de BD (y diagrama ER) | ✅ | [Modelo ER](endorse-service/docs/er-plantillas.png), [migración](endorse-service/src/database/migrations/1727100000000-InitialSchema.ts), [schema.test.ts](endorse-service/tests/schema.test.ts) |
 | Criterio: transformación de datos | ✅ | Ídem "Construir el JSON" |
 | Criterio: extensibilidad sin tocar código | ✅ | Segunda plantilla en [seed-data.ts](endorse-service/src/database/seed-data.ts); test y E2E "extensibilidad" |
@@ -159,11 +222,11 @@ Estado: ✅ cumplido y verificado · 🟡 parcial · ❌ pendiente.
 | Criterio: versionamiento del API | ✅ | Prefijo `/v1` |
 | Criterio: pruebas unitarias | ✅ | 24 pruebas en verde |
 | Criterio: mantenibilidad / SOLID | ✅ | Interfaz `PlantillaRepository`, composition root en [server.ts](endorse-service/src/server.ts) |
-| Criterio: despliegue — Dockerizar | 🟡 | [Dockerfile](endorse-service/Dockerfile) multi-stage `node:22-alpine`; **imagen no construida** (Docker no disponible en el entorno de desarrollo) |
-| Criterio: despliegue — nube con capa gratuita | ❌ | Procedimiento para Cloud Run documentado; **despliegue pendiente** |
+| Criterio: despliegue - Dockerizar | ✅ | [Dockerfile](endorse-service/Dockerfile) multi-stage `node:22-alpine`; Render construye y ejecuta la imagen (runtime Docker) |
+| Criterio: despliegue - nube con capa gratuita | ✅ | Render plan Free: https://endorse-service.onrender.com, consumido por https://reto-tecnico-interseguro.vercel.app (Vercel); ver [Despliegue](#despliegue) |
 | Criterio: seguridad del servicio (JWT) | ✅ | JWT HS256 en [auth.service.ts](endorse-service/src/services/auth.service.ts); arranque bloqueado sin secretos |
 
-### Ejercicio 2 — Servicio de rutas óptimas
+### Ejercicio 2 - Servicio de rutas óptimas
 
 | Requisito del enunciado | Estado | Evidencia |
 |---|---|---|
@@ -172,18 +235,18 @@ Estado: ✅ cumplido y verificado · 🟡 parcial · ❌ pendiente.
 | Grafo flexible (distritos = nodos, distancias = pesos) | ✅ | Tipo `Graph` recibido en cada petición |
 | Error controlado si el accidente es inalcanzable | ✅ | 422 `UNREACHABLE` ([controller.go](routes-service/internal/api/controller.go)) |
 | Salida igual al ejemplo del enunciado | ✅ | `TestOptimal_OK` y E2E |
-| Parte 2 — Frontend | ✅ | [RoutesTab.vue](evolution-frontend/src/components/RoutesTab.vue); 5 escenarios E2E |
+| Parte 2 - Frontend | ✅ | [RoutesTab.vue](evolution-frontend/src/components/RoutesTab.vue); 5 escenarios E2E |
 | Criterio: implementación eficiente del camino mínimo | ✅ | Una sola ejecución de Dijkstra, O(E log V), en lugar de una por base |
 | Criterio: claridad del API | ✅ | [openapi.yaml](routes-service/openapi.yaml) validado con Redocly |
 | Criterio: extensibilidad del grafo | ✅ | El grafo viaja en el request |
 | Criterio: versionamiento del API | ✅ | Prefijo `/v1` |
 | Criterio: pruebas unitarias del algoritmo | ✅ | 27 pruebas en verde, 12 del algoritmo |
 | Criterio: mantenibilidad / SOLID | ✅ | Interfaz `RouteService` inyectada en `NewMux` |
-| Criterio: despliegue — Dockerizar | 🟡 | [Dockerfile](routes-service/Dockerfile) `golang:1.23-alpine` + distroless; **imagen no construida** |
-| Criterio: despliegue — nube con capa gratuita | ❌ | Procedimiento para Cloud Run documentado; **despliegue pendiente** |
+| Criterio: despliegue - Dockerizar | ✅ | [Dockerfile](routes-service/Dockerfile) `golang:1.23-alpine` + distroless; Render construye y ejecuta la imagen (runtime Docker) |
+| Criterio: despliegue - nube con capa gratuita | ✅ | Render plan Free: https://routes-service-68hr.onrender.com, consumido por https://reto-tecnico-interseguro.vercel.app (Vercel); ver [Despliegue](#despliegue) |
 | Criterio: seguridad del servicio (JWT) | ✅ | JWT HS256; sin secretos por defecto, credenciales comparadas en tiempo constante, timeouts y límite de 1 MB |
 
-### Ejercicio 3 — Arquitectura de préstamos de renta particular
+### Ejercicio 3 - Arquitectura de préstamos de renta particular
 
 | Criterio del enunciado | Estado | Evidencia en el [diagrama TO BE](ej3-arquitectura/to-be.jpg) |
 |---|---|---|
@@ -193,9 +256,3 @@ Estado: ✅ cumplido y verificado · 🟡 parcial · ❌ pendiente.
 | Control de concurrencia | ✅ | `Idempotency-Key` con `UNIQUE` en BD, cola FIFO agrupada por póliza y lock por póliza en el worker |
 | Seguridad | ✅ | API Gateway con WAF, JWT y rate limiting; secretos en Secret Manager; auditoría de estados en la BD de solicitudes |
 | Costo de implementación | ✅ | Servicios serverless con capa gratuita de GCP (Cloud Run, Pub/Sub, Cloud SQL/Firestore), pago por uso y sin servidores dedicados; INARI solo expone una consulta de estado |
-
-### Pendientes fuera del entorno de desarrollo
-
-1. Construir las imágenes Docker de endorse-service y routes-service.
-2. Desplegar ambos servicios en Cloud Run (procedimiento en cada README); luego registrar las URLs públicas
-   en `servers` de cada `openapi.yaml` y en `CORS_ORIGIN`.

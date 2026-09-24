@@ -10,8 +10,10 @@ info:
     de grúas más cercana y el distrito del siniestro. En empate de distancia gana
     la base que aparece primero en `depots`.
 servers:
+  - url: https://routes-service-68hr.onrender.com
+    description: Producción (Render)
   - url: http://localhost:8080
-    description: Local
+    description: Desarrollo local
 paths:
   /v1/auth/token:
     post:

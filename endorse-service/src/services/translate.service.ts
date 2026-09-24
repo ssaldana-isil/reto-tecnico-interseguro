@@ -7,7 +7,6 @@ import type { PlantillaRepository } from '../repositories/plantilla.repository';
 export class TranslateService {
   constructor(private readonly plantillas: PlantillaRepository) {}
 
-  /** Busca la plantilla activa por (producto, tipoEndoso) y construye el JSON del core. */
   async translate(input: EndorseRequestDto): Promise<EndorseResponseDto> {
     const plantilla = await this.plantillas.findActive(input.producto, input.tipoEndoso);
     if (!plantilla) {

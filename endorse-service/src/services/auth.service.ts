@@ -24,7 +24,6 @@ export class AuthService {
     return this.settings.tokenTtlSeconds;
   }
 
-  /** Devuelve un token si las credenciales coinciden, o null si no. */
   issue(clientId: unknown, clientSecret: unknown): string | null {
     if (typeof clientId !== 'string' || typeof clientSecret !== 'string') {
       return null;
