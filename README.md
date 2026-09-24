@@ -256,3 +256,5 @@ Estado: ✅ cumplido y verificado · 🟡 parcial · ❌ pendiente.
 | Control de concurrencia | ✅ | `Idempotency-Key` con `UNIQUE` en BD, cola FIFO agrupada por póliza y lock por póliza en el worker |
 | Seguridad | ✅ | API Gateway con WAF, JWT y rate limiting; secretos en Secret Manager; auditoría de estados en la BD de solicitudes |
 | Costo de implementación | ✅ | Servicios serverless con capa gratuita de GCP (Cloud Run, Pub/Sub, Cloud SQL/Firestore), pago por uso y sin servidores dedicados; INARI solo expone una consulta de estado |
+
+Última actualización: 23-09-2026.
